@@ -184,22 +184,59 @@ reader.readAsDataURL(file);
 
 function showResult(data){
 
-let html="<div class='green'><b>✅ Analyse abgeschlossen</b></div>";
+let html="";
 
-if(data.result){
+if(data.result && data.result.choices){
 
-html+="<div class='card blue'><b>📦 Rohdaten von KI:</b></div>";
-html+="<div class='card'>"+JSON.stringify(data.result,null,2)+"</div>";
+let txt = data.result.choices[0].message.content;
 
+txt = txt.replace(/```json/g,"");
+txt = txt.replace(/```/g,"");
+
+try{
+const json = JSON.parse(txt);
+
+html += "<div class='green'><b>✅ Analyse abgeschlossen</b></div>";
+
+html += "<div class='card blue'><b>📦 Fertige CNC Daten:</b></div>";
+
+html += "<div class='card'>";
+
+for (const key in json){
+
+html += "<b>"+key+":</b><br>";
+
+if(typeof json[key] === "object"){
+html += JSON.stringify(json[key],null,2)+"<br><br>";
 }else{
-
-html+="<div class='card orange'>"+JSON.stringify(data,null,2)+"</div>";
+html += json[key]+"<br><br>";
+}
 
 }
 
-document.getElementById("status").innerHTML=html;
+html += "</div>";
+
+}catch(e){
+
+html += "<div class='orange'><b>⚠️ JSON Fehler</b></div>";
+html += "<div class='card'>"+txt+"</div>";
+
+}
+
+}else{
+
+html += "<div class='orange'><b>⚠️ Keine Antwort</b></div>";
+html += "<div class='card'>"+JSON.stringify(data,null,2)+"</div>";
+
+}
+
+html += "<button onclick='location.reload()'>Neu starten</button>";
+
+document.getElementById("status").innerHTML = html;
+
 }
 </script>
 
 </body>
 </html>
+
