@@ -2,100 +2,202 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CNC KI Analyzer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CNC KI Analyzer PRO</title>
 
 <style>
 body{
-font-family:Arial;
-background:#111;
+margin:0;
+padding:0;
+font-family:Arial, sans-serif;
+background:#050505;
 color:white;
-text-align:center;
-padding:30px;
 }
-.box{
-max-width:500px;
+
+.wrapper{
+max-width:760px;
 margin:auto;
-background:#1c1c1c;
+padding:20px;
+}
+
+.panel{
+background:#121212;
+border-radius:20px;
 padding:25px;
-border-radius:16px;
+box-shadow:0 0 25px rgba(0,255,120,0.15);
 }
-input,button{
+
+h1{
+text-align:center;
+font-size:42px;
+margin-bottom:25px;
+}
+
+input[type=file]{
 width:100%;
-padding:14px;
-margin-top:12px;
-border:none;
-border-radius:10px;
-font-size:16px;
-}
-button{
-background:#00c853;
+background:#1e1e1e;
 color:white;
-font-weight:bold;
+padding:14px;
+border-radius:12px;
+border:none;
+margin-bottom:18px;
 }
+
+button{
+width:100%;
+padding:18px;
+font-size:24px;
+font-weight:bold;
+border:none;
+border-radius:14px;
+cursor:pointer;
+margin-top:10px;
+}
+
+.main{
+background:#00d15e;
+color:white;
+}
+
+.second{
+background:#222;
+color:white;
+}
+
 img{
 max-width:100%;
+border-radius:16px;
 margin-top:15px;
-border-radius:12px;
+margin-bottom:15px;
 }
-pre{
-text-align:left;
+
+#status{
+margin-top:20px;
+padding:18px;
+background:black;
+border-radius:14px;
+font-size:20px;
 white-space:pre-wrap;
-background:#000;
+overflow:auto;
+}
+
+.card{
+background:#1b1b1b;
 padding:15px;
-border-radius:12px;
-margin-top:15px;
+border-radius:14px;
+margin-top:12px;
+}
+
+.green{color:#00ff88;}
+.blue{color:#00cfff;}
+.orange{color:#ffb300;}
+
+.loader{
+font-size:22px;
+animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+0%{opacity:0.4;}
+50%{opacity:1;}
+100%{opacity:0.4;}
 }
 </style>
 </head>
 
 <body>
 
-<div class="box">
-<h1>🧠 CNC KI Analyzer</h1>
+<div class="wrapper">
+<div class="panel">
 
-<input type="file" id="file">
+<h1>🧠 CNC KI Analyzer PRO</h1>
 
-<img id="preview">
+<input type="file" id="fileInput" accept="image/*">
 
-<button onclick="analyze()">Zeichnung analysieren</button>
+<img id="preview" style="display:none;">
 
-<pre id="result">Warte auf Bild...</pre>
+<button class="main" onclick="analyze()">Zeichnung analysieren</button>
+
+<div id="status">Bereit...</div>
+
+<button class="second" onclick="location.reload()">Neu starten</button>
+
+</div>
 </div>
 
 <script>
-let imageBase64="";
+const proxy="https://project-29sbg.vercel.app/api/chat";
 
-document.getElementById("file").onchange=function(e){
+document.getElementById("fileInput").addEventListener("change",function(e){
 const file=e.target.files[0];
+if(!file)return;
+
 const reader=new FileReader();
 
 reader.onload=function(){
-imageBase64=reader.result;
-document.getElementById("preview").src=imageBase64;
+document.getElementById("preview").src=reader.result;
+document.getElementById("preview").style.display="block";
 };
 
 reader.readAsDataURL(file);
-}
+});
 
 async function analyze(){
 
-document.getElementById("result").innerText="Analysiere...";
+const file=document.getElementById("fileInput").files[0];
 
-const res=await fetch("/api/chat",{
+if(!file){
+alert("Bitte Datei auswählen");
+return;
+}
+
+document.getElementById("status").innerHTML="<div class='loader'>🔍 Analysiere Zeichnung...</div>";
+
+const reader=new FileReader();
+
+reader.onload=async function(){
+
+try{
+
+const response=await fetch(proxy,{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
 },
 body:JSON.stringify({
-image_url:imageBase64
+image_url:reader.result
 })
 });
 
-const data=await res.json();
+const data=await response.json();
 
-document.getElementById("result").innerText=
-JSON.stringify(data,null,2);
+showResult(data);
+
+}catch(err){
+document.getElementById("status").innerHTML="❌ Fehler: "+err;
+}
+
+};
+
+reader.readAsDataURL(file);
+}
+
+function showResult(data){
+
+let html="<div class='green'><b>✅ Analyse abgeschlossen</b></div>";
+
+if(data.result){
+
+html+="<div class='card blue'><b>📦 Rohdaten von KI:</b></div>";
+html+="<div class='card'>"+JSON.stringify(data.result,null,2)+"</div>";
+
+}else{
+
+html+="<div class='card orange'>"+JSON.stringify(data,null,2)+"</div>";
+
+}
+
+document.getElementById("status").innerHTML=html;
 }
 </script>
 
